@@ -127,7 +127,7 @@
     cookies: ['Ce site utilise des cookies', 'On aime les cookies (les vrais)', 'Acceptez-vous les cookies ?'],
     cols: ['Société', 'Aide', 'Légal', 'Suivez-nous'],
     colLinks: ['À propos', 'Presse', 'Carrières', 'CGU', 'Confidentialité', 'Plan du site', 'Instagram', 'Newsletter'],
-    overTitles: ['AÏE !', 'CLIC FATAL', 'ERREUR 404', 'PAGE PLANTÉE', 'CRASH !'],
+    overTitles: ['ACCÈS REFUSÉ', 'CONNEXION PERDUE', 'SEGFAULT', 'KERNEL PANIC', 'FIREWALL ACTIVÉ', 'ERREUR 404'],
     death: {
       button: 'Le bouton « {label} » était plus rapide que toi !',
       link: 'Tu t’es pris le lien « {label} » en pleine tête.',

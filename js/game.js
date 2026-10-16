@@ -29,7 +29,8 @@
     this.fx = { slow: 0, adblock: 0 };
     this.fxMax = { slow: 6, adblock: 8 };
     this.shield = 0; this.cookies = 0; this.banked = true; this.endless = false;
-    C.configure(save.data.settings);
+    this.rec = null; this.achT = 0; this.sx = 0; this.sy = 0; this.curStill = 0; this.curNo = 0;
+    C.configure(save.data.settings, save.data.upgrades);
     this.resize();
     this.px = this.lx = this.W / 2;
     this.py = this.ly = this.H * 0.7;
@@ -45,6 +46,7 @@
     this.W = this.stage.clientWidth;
     this.H = this.stage.clientHeight;
     if (G.trail) G.trail.resize(this.W, this.H);
+    if (G.hacker) G.hacker.resize(this.W, this.H);
   };
 
   /* --- Réglages et apparence ------------------------------------------- */
@@ -62,6 +64,10 @@
     this.skinEl.style.left = (-sk.cx) + 'px';
     this.skinEl.style.top = (-sk.cy) + 'px';
     this.playerEl.classList.toggle('rainbow', !!col.rainbow);
+    this.playerEl.classList.toggle('glitch', !!col.glitch);
+    var th = COS.ui(eq.ui), st = document.documentElement.style;
+    st.setProperty('--g', th.g); st.setProperty('--g2', th.g2); st.setProperty('--g-rgb', th.rgb);
+    if (G.hacker) G.hacker.setColor(th.rgb);
     G.trail.setKind(eq.trail);
   };
 
@@ -106,10 +112,10 @@
 
   /* --- Commandes -------------------------------------------------------- */
   Game.prototype.start = function (seed) {
-    if (this.state === 'playing' || this.state === 'paused') this.bank(false);
+    if (this.state === 'playing' || this.state === 'paused') this.bank('quit');
     audio.unlock();
     var S = save.data, U = S.upgrades;
-    C.configure(S.settings);
+    C.configure(S.settings, U);
     this.reset(seed);
     if (this.touchMode) { this.px = this.W / 2; this.py = this.H * 0.75; }
     this.lx = this.px; this.ly = this.py;
@@ -122,7 +128,9 @@
     this.fxMax.adblock = 8 * (1 + 0.25 * U.power);
     this.banked = false;
     this.state = 'playing';
-    this.grace = C.graceStart;
+    this.grace = C.graceStart + 0.5 * U.grace;
+    this.rec = this.newRun(S);
+    this.achT = 0; this.sx = this.px; this.sy = this.py; this.curStill = 0; this.curNo = 0;
     this.applyCosmetics();
     G.trail.clear();
     this.playerEl.classList.remove('hidden', 'dead');
@@ -137,6 +145,18 @@
     audio.start();
   };
 
+  // Suivi d'une partie (succès + classement)
+  Game.prototype.newRun = function (S) {
+    return {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      t: 0, tB: 0, score: 0, cookies: 0, cookiesB: 0, powers: 0, powersB: 0, p: {}, shields: 0,
+      nears: 0, nearsB: 0, still: 0, noCookie: 0, mul: 0,
+      diff: S.settings.difficulty, dur: S.settings.duration, endless: C.endless,
+      won: false, cause: '', result: '', paid: 0, counted: false, winCounted: false,
+      samples: [], sInt: 10, nextSample: 0
+    };
+  };
+
   Game.prototype.pause = function () {
     if (this.state !== 'playing') return;
     this.state = 'paused';
@@ -147,19 +167,19 @@
   Game.prototype.resume = function () {
     if (this.state !== 'paused') return;
     this.state = 'playing';
-    this.grace = C.graceResume;
+    this.grace = C.graceResume + 0.5 * save.data.upgrades.grace;
     this.lx = this.px; this.ly = this.py;
     document.body.classList.add('playing');
     ui.hide();
   };
 
   Game.prototype.toMenu = function () {
-    if (this.state === 'playing' || this.state === 'paused') this.bank(false);
+    if (this.state === 'playing' || this.state === 'paused') this.bank('quit');
     this.state = 'menu';
     document.body.classList.remove('playing');
     this.playerEl.classList.add('hidden');
     G.trail.clear();
-    C.configure(save.data.settings);
+    C.configure(save.data.settings, save.data.upgrades);
     this.reset();
     ui.setEffects([]);
     ui.show('menu');
@@ -171,9 +191,9 @@
     if (this.state !== 'won') return;
     this.endless = true;
     this.banked = false;
-    this.cookies = 0;
+    if (this.rec) this.rec.endless = true;
     this.state = 'playing';
-    this.grace = C.graceResume;
+    this.grace = C.graceResume + 0.5 * save.data.upgrades.grace;
     this.lx = this.px; this.ly = this.py;
     document.body.classList.add('playing');
     ui.hide();
@@ -212,6 +232,24 @@
     if (this.speed > this.maxSpeed) this.maxSpeed = this.speed;
     this.scroll += this.speed * dt;
     if (this.grace > 0) this.grace = Math.max(0, this.grace - dt);
+
+    // Suivi de la partie
+    var r = this.rec, mul = C.speedAt(this.t) / 100;
+    r.t = this.t; r.score = this.score();
+    if (mul > r.mul) r.mul = mul;
+    if (Math.hypot(this.px - this.sx, this.py - this.sy) > 3) { this.sx = this.px; this.sy = this.py; this.curStill = 0; }
+    else { this.curStill += dt; if (this.curStill > r.still) r.still = this.curStill; }
+    this.curNo += dt; if (this.curNo > r.noCookie) r.noCookie = this.curNo;
+    if (this.t >= r.nextSample) {
+      r.samples.push(Math.round(mul * 10) / 10);
+      r.nextSample = r.samples.length * r.sInt;
+      if (r.samples.length > 180) {
+        r.samples = r.samples.filter(function (v, i) { return i % 2 === 0; });
+        r.sInt *= 2; r.nextSample = r.samples.length * r.sInt;
+      }
+    }
+    this.achT += dt;
+    if (this.achT >= 0.5) { this.achT = 0; G.ach.check(r); }
 
     // Étapes : 10 par niveau
     var no = 1 + Math.floor(this.t / (C.curveLen / 10));
@@ -287,7 +325,8 @@
     pk.taken = true;
     pk.el.classList.add('pop');
     setTimeout(function () { if (pk.el.parentNode) pk.el.remove(); }, 300);
-    if (pk.type === 'cookie') { this.cookies++; audio.coin(); return; }
+    if (pk.type === 'cookie') { this.cookies++; this.rec.cookies = this.cookies; this.curNo = 0; audio.coin(); return; }
+    this.rec.powers++; this.rec.p[pk.type] = 1;
     audio.power();
     if (pk.type === 'power-shield') {
       this.shield = Math.min(2, this.shield + 1);
@@ -304,6 +343,7 @@
 
   Game.prototype.useShield = function (item) {
     this.shield--;
+    save.data.stats.shields++; this.rec.shields++;
     item.dead = true;
     item.el.classList.add('shattered');
     this.grace = 0.9;
@@ -342,7 +382,8 @@
           if (d2 < best) best = d2;
         }
         if (best < r * r) { hit = it; break; }
-        if (danger && best < near * near) nowNear.push(it);
+        if (best < near * near) nowNear.push(it);
+        if (best < 324 && !it.grazed) { it.grazed = true; this.rec.nears++; }   // frôlement : moins de 18 px
       }
     }
     this.lx = x1; this.ly = y1;
@@ -350,7 +391,7 @@
     // Éléments « proches » : entourés de rouge
     var old = this.nearItems, n;
     for (n = 0; n < old.length; n++) if (nowNear.indexOf(old[n]) < 0) old[n].el.classList.remove('near');
-    for (n = 0; n < nowNear.length; n++) nowNear[n].el.classList.add('near');
+    if (danger) for (n = 0; n < nowNear.length; n++) nowNear[n].el.classList.add('near');
     this.nearItems = nowNear;
     return hit;
   };
@@ -358,20 +399,56 @@
   Game.prototype.score = function () { return Math.floor(this.scroll / 10); };
 
   /* --- Fin de partie ----------------------------------------------------- */
-  // Compte les cookies gagnés et met à jour records / statistiques (une seule fois par partie)
-  Game.prototype.bank = function (won) {
-    if (this.banked) return this.lastRun;
+  // Compte les cookies gagnés, met à jour records / statistiques / classement.
+  // result : 'win' | 'death' | 'quit'. Peut être rappelé après « continuer en mode infini » :
+  // on ne paie et ne compte que la différence.
+  Game.prototype.bank = function (result) {
+    var r = this.rec;
+    if (!r || this.banked) return this.lastRun;
     this.banked = true;
-    var S = save.data, U = S.upgrades, score = this.score();
-    var base = this.cookies + Math.floor(score / 100) + (won ? WIN_BONUS : 0);
-    var earned = Math.round(base * C.diff.reward * (1 + 0.2 * U.bonus));
-    S.cookies += earned;
-    S.stats.games++; S.stats.time += Math.round(this.t); S.stats.cookies += earned;
-    if (won) S.stats.wins++;
-    var record = score > (S.stats.best[this.modeKey] || 0);
-    if (record) S.stats.best[this.modeKey] = score;
+    var S = save.data, U = S.upgrades, st = S.stats, score = this.score(), eq = S.equipped;
+    r.t = this.t; r.score = score; r.result = result;
+    if (result === 'win') r.won = true;
+
+    var total = Math.round((r.cookies + Math.floor(score / 100) + (r.won ? WIN_BONUS : 0)) * C.diff.reward * (1 + 0.2 * U.bonus));
+    var pay = Math.max(0, total - r.paid);
+    r.paid = total; S.cookies += pay; st.cookies += pay;
+
+    if (!r.counted) { r.counted = true; st.games++; }
+    if (r.won && !r.winCounted) {
+      r.winCounted = true; st.wins++;
+      st.winMax = Math.max(st.winMax, r.dur || 0);
+      if (r.diff === 'infernal') st.infWinMax = Math.max(st.infWinMax, r.dur || 0);
+    }
+    st.time += r.t - r.tB; r.tB = r.t;
+    st.picked += r.cookies - r.cookiesB; r.cookiesB = r.cookies;
+    st.powers += r.powers - r.powersB; r.powersB = r.powers;
+    st.nears += r.nears - r.nearsB; r.nearsB = r.nears;
+    st.bestT = Math.max(st.bestT, r.t);
+    if (r.diff === 'infernal') st.infT = Math.max(st.infT, r.t);
+    st.mul = Math.max(st.mul, r.mul); st.bestScore = Math.max(st.bestScore, score);
+    st.still = Math.max(st.still, r.still); st.noCookie = Math.max(st.noCookie, r.noCookie);
+
+    var record = score > (st.best[this.modeKey] || 0);
+    if (record) st.best[this.modeKey] = score;
+
+    // Classement : les 10 meilleures parties de chaque difficulté
+    var list = S.runs[r.diff] || (S.runs[r.diff] = []);
+    for (var k = list.length - 1; k >= 0; k--) if (list[k].id === r.id) list.splice(k, 1);
+    var rec = {
+      id: r.id, score: score, t: Math.round(r.t), diff: r.diff, dur: r.dur, endless: !r.dur || r.endless,
+      won: r.won, result: result, cause: r.cause, cookies: r.cookies, mul: Math.round(r.mul * 10) / 10,
+      date: Date.now(), skin: eq.skin, color: eq.color, pseudo: S.settings.pseudo, title: eq.title,
+      samples: r.samples.slice(), sInt: r.sInt
+    };
+    if (score > 0) list.push(rec);
+    list.sort(function (a, b) { return b.score - a.score; });
+    list.length = Math.min(10, list.length);
+    var rank = list.indexOf(rec) + 1;
+
+    this.lastRun = { earned: r.paid, record: record, best: st.best[this.modeKey] || 0, score: score, rank: rank, diff: r.diff };
     save.commit();
-    this.lastRun = { earned: earned, record: record, best: S.stats.best[this.modeKey] || 0, score: score };
+    G.ach.check(r);
     return this.lastRun;
   };
 
@@ -379,19 +456,19 @@
     var run = this.lastRun;
     return {
       title: title, message: message, score: run.score, best: run.best, record: run.record, earned: run.earned,
-      time: mmss(this.t)
+      time: mmss(this.t), rank: run.rank, diff: run.diff
     };
   };
 
   Game.prototype.win = function () {
     this.state = 'won';
     document.body.classList.remove('playing');
-    this.bank(true);
+    this.bank('win');
     audio.win();
     ui.setEffects([]);
     var self = this;
     setTimeout(function () {
-      if (self.state === 'won') ui.showEnd('win', self.endInfo('PAGE CHARGÉE À 100 % !', 'Tu as atteint le bas du site. Incroyable.'));
+      if (self.state === 'won') ui.showEnd('win', self.endInfo('ACCÈS ROOT OBTENU', 'Page chargée à 100 % : tu as atteint le bas du site. Système piraté !'));
     }, 600);
   };
 
@@ -411,7 +488,9 @@
     audio.die();
     ui.setEffects([]);
 
-    this.bank(false);
+    this.rec.cause = item.type;
+    save.data.stats.deaths[item.type] = (save.data.stats.deaths[item.type] || 0) + 1;
+    this.bank('death');
     var msg = (WD.death[item.type] || 'Tu as touché quelque chose.').replace('{label}', item.label || '');
     var title = WD.overTitles[Math.floor(Math.random() * WD.overTitles.length)];
     setTimeout(function () {
@@ -430,7 +509,7 @@
     if (this.state === 'playing') {
       var progress = this.endless ? (this.t % C.curveLen) / C.curveLen : Math.min(1, this.t / C.duration);
       ui.setHud({
-        score: this.score(), speed: this.speed / C.speedAt(0),
+        score: this.score(), speed: this.speed / 100,
         stage: this.endless ? String(this.stageNo) : this.stageNo + '/10',
         time: mmss(this.endless ? this.t : C.duration - this.t),
         cookies: this.cookies, progress: progress

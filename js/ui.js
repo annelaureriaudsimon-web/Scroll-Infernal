@@ -6,11 +6,24 @@
   var G = window.SiteGame = window.SiteGame || {};
   function $(id) { return document.getElementById(id); }
 
-  var NAMES = ['menu', 'settings', 'shop', 'pause', 'over', 'win'];
+  var NAMES = ['menu', 'settings', 'shop', 'rank', 'ach', 'pause', 'over', 'win'];
   var screens = {};
   NAMES.forEach(function (n) { screens[n] = $('screen-' + n); });
   var hud = { score: $('hud-score'), speed: $('hud-speed'), stage: $('hud-stage'), time: $('hud-time'), cookies: $('hud-cookies'), bar: $('loadbar-fill') };
   var cache = {}, toastTimer = 0, effKey = '', effBars = [];
+
+  var achQ = [], achBusy = false;
+  function nextAch() {
+    var it = achQ.shift(), el = $('ach-toast');
+    if (!it) { achBusy = false; return; }
+    achBusy = true;
+    var tier = G.ach.TIERS[it.a.tier];
+    el.className = 't-' + it.a.tier;
+    el.innerHTML = '<small>[ SUCCÈS DÉBLOQUÉ · ' + tier.name.toUpperCase() + ' ]</small><b>' + it.a.name + '</b><span><i class="cookie-ico"></i>+' + it.reward + '</span>';
+    void el.offsetWidth;
+    el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); setTimeout(nextAch, 350); }, 2600);
+  }
 
   function setText(key, el, value) {
     if (cache[key] !== value) { cache[key] = value; el.textContent = value; }
@@ -23,10 +36,12 @@
       if (from) this.from = from;
       this.current = name;
       NAMES.forEach(function (n) { screens[n].classList.toggle('show', n === name); });
+      if (G.hacker) G.hacker.rain(true);
     },
     hide: function () {
       this.current = null;
       NAMES.forEach(function (n) { screens[n].classList.remove('show'); });
+      if (G.hacker) G.hacker.rain(false);
     },
     back: function () { this.show(this.from || 'menu'); },
 
@@ -36,6 +51,12 @@
       t.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 1600);
+    },
+
+    // Succès débloqués : petites bannières les unes après les autres
+    achToast: function (a, reward) {
+      achQ.push({ a: a, reward: reward });
+      if (!achBusy) nextAch();
     },
 
     setHud: function (o) {
@@ -76,6 +97,7 @@
       $(p + '-time').textContent = o.time;
       $(p + '-cookies').textContent = '+' + o.earned;
       $(p + '-record').style.display = o.record ? 'block' : 'none';
+      $(p + '-rank').textContent = o.rank ? 'CLASSEMENT ' + G.CONFIG.DIFFS[o.diff].name.toUpperCase() + ' : #' + o.rank : '';
       this.show(name);
     }
   };

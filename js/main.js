@@ -25,6 +25,10 @@
   click('btn-shop', function () { G.screens.openShop('menu'); });
   click('btn-settings', function () { G.screens.openSettings('menu'); });
   click('btn-skin-edit', function () { G.screens.openShop('menu'); });
+  click('btn-menu-rank', function () { G.screens.openRank('menu'); });
+  click('btn-menu-ach', function () { G.screens.openAch('menu'); });
+  click('btn-rank-back', function () { ui.back(); G.screens.refresh(); });
+  click('btn-ach-back', function () { ui.back(); G.screens.refresh(); });
   // Réglages / boutique
   click('btn-settings-back', function () { ui.back(); G.screens.refresh(); });
   click('btn-shop-back', function () { ui.back(); G.screens.refresh(); });
@@ -38,11 +42,13 @@
   // Fin de partie
   click('btn-replay', startGame);
   click('btn-over-shop', function () { G.screens.openShop('over'); });
+  click('btn-over-rank', function () { G.screens.openRank('over'); });
   click('btn-menu', function () { game.toMenu(); });
   // Victoire
   click('btn-continue', function () { game.continueEndless(); });
   click('btn-win-replay', startGame);
   click('btn-win-shop', function () { G.screens.openShop('win'); });
+  click('btn-win-rank', function () { G.screens.openRank('win'); });
   click('btn-win-menu', function () { game.toMenu(); });
 
   /* --- Souris / doigt ---------------------------------------------------- */
@@ -68,9 +74,13 @@
   /* --- Clavier ----------------------------------------------------------- */
   window.addEventListener('keydown', function (e) {
     var k = e.key, s = game.state, cur = ui.current;
-    if (e.target && e.target.tagName === 'INPUT' && k === ' ') return;
+    if (G.hacker && G.hacker.booting) return;
+    if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {   // on tape un pseudo : pas de raccourcis
+      if (k === 'Escape' || k === 'Enter') e.target.blur();
+      return;
+    }
     if (k === 'Escape' || k === 'p' || k === 'P') {
-      if (cur === 'settings' || cur === 'shop') { ui.back(); G.screens.refresh(); }
+      if (cur === 'settings' || cur === 'shop' || cur === 'rank' || cur === 'ach') { ui.back(); G.screens.refresh(); }
       else if (s === 'playing') game.pause();
       else if (s === 'paused') game.resume();
       e.preventDefault();
@@ -81,7 +91,7 @@
     } else if (k === 'Enter' || k === ' ') {
       if (cur === 'menu' || cur === 'over' || cur === 'win') startGame();
       else if (cur === 'pause') game.resume();
-      if (cur !== 'settings' && cur !== 'shop') e.preventDefault();
+      if (cur !== 'settings' && cur !== 'shop' && cur !== 'rank' && cur !== 'ach') e.preventDefault();
     }
   });
 
@@ -91,4 +101,6 @@
   window.addEventListener('resize', function () { game.resize(); game.pause(); });
 
   game.run();
+  G.hacker.rain(true);   // le menu est ouvert au départ
+  G.hacker.boot();
 })();

@@ -255,10 +255,11 @@
     // Cookies (monnaie de la boutique) et bonus à ramasser
     var pickups = [], second = null;
     for (i = 0; i < gaps.length; i++) if (!gaps[i].primary) second = gaps[i];
-    if (r() < 0.45) pickups.push({ type: 'cookie', x: cx / W, y: Math.round(bandH / 2) });
+    var hv = 1 + 0.25 * C.harvest;
+    if (r() < Math.min(0.9, 0.45 * hv)) pickups.push({ type: 'cookie', x: cx / W, y: Math.round(bandH / 2) });
     if (second && r() < 0.3) pickups.push({ type: 'cookie', x: second.c / W, y: Math.round(bandH / 2) });
-    if (r() < 0.22) pickups.push({ type: 'cookie', x: 0.08 + 0.84 * r(), y: Math.round(bandH + spacing * 0.5) }); // appât : demande un petit détour
-    if (t > 20 && r() < 0.03) pickups.push({ type: 'power-' + pick(r, ['shield', 'slow', 'adblock']), x: cx / W, y: Math.round(bandH + spacing * 0.45) });
+    if (r() < Math.min(0.6, 0.22 * hv)) pickups.push({ type: 'cookie', x: 0.08 + 0.84 * r(), y: Math.round(bandH + spacing * 0.5) }); // appât : demande un petit détour
+    if (t > 20 && r() < 0.03 * (1 + 0.35 * C.luck)) pickups.push({ type: 'power-' + pick(r, ['shield', 'slow', 'adblock']), x: cx / W, y: Math.round(bandH + spacing * 0.45) });
 
     var sec = {
       kind: kind, theme: th, url: this.url, pageId: this.pageId, pageStart: this.pageStart,
