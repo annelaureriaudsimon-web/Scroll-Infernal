@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Scroll Infernal — hack the web</title>
+  <meta name="description" content="Tu es la souris. Le site web descend de plus en plus vite. Évite tous les blocs, boutons, pubs et pop-ups, ramasse des cookies et personnalise ta souris !">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/site-elements.css">
+  <link rel="stylesheet" href="css/ui.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/hacker.css">
+</head>
+<body>
+  <div id="boot"><pre></pre><p>[ clic ou touche : passer ]</p></div>
+  <div id="app">
+
+    <!-- Fausse barre de navigateur : URL du site en cours + HUD + barre de chargement du niveau -->
+    <header id="chrome">
+      <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div id="urlbar"><span class="proto">TARGET</span><span id="url-text">megashop.fr/promos-folles</span></div>
+      <div id="hud">
+        <div class="hud-item"><small>SCORE</small><b id="hud-score">0</b></div>
+        <div class="hud-item"><small>VITESSE</small><b id="hud-speed">×1.0</b></div>
+        <div class="hud-item"><small>ÉTAPE</small><b id="hud-stage">1/10</b></div>
+        <div class="hud-item"><small id="hud-time-l">RESTE</small><b id="hud-time">30:00</b></div>
+        <div class="hud-item"><small>COOKIES</small><b class="ck-line"><span class="cookie-ico"></span><span id="hud-cookies">0</span></b></div>
+        <button id="btn-sound" type="button" title="Son (M)">SON</button>
+        <button id="btn-pause" type="button" title="Pause (Échap)">II</button>
+      </div>
+      <div id="loadbar"><i id="loadbar-fill"></i></div>
+    </header>
+
+    <!-- Zone de jeu -->
+    <main id="stage">
+      <div id="world"></div>
+      <canvas id="trail"></canvas>
+      <canvas id="matrix"></canvas>
+      <div id="player" class="hidden"><div class="skin"></div><span class="ring"></span></div>
+      <div id="effects"></div>
+      <div id="flash"></div>
+      <div id="toast"></div>
+      <div id="ach-toast"></div>
+
+      <!-- ===== Menu principal ===== -->
+      <section id="screen-menu" class="screen show">
+        <div class="hub">
+          <div class="panel" data-title="root@scroll:~/menu">
+            <p class="eyebrow">// accès système · cible : le web</p>
+            <h1><span class="gl" data-text="SCROLL">SCROLL</span><span class="gl" data-text="INFERNAL">INFERNAL</span></h1>
+            <p class="tagline">Un site web descend… de plus en plus vite. Reste dans les <b>espaces vides</b>, vole des <b>cookies</b> et atteins le bas de la page avant le crash.</p>
+            <button id="btn-play" class="big" type="button">&gt; JOUER</button>
+            <p class="modeline">$ mode <span id="menu-mode">niveau de 30 min · normal</span></p>
+            <div class="row2">
+              <button id="btn-shop" class="sec" type="button">./boutique <span class="pill"><span class="cookie-ico"></span><b id="menu-cookies">0</b></span></button>
+              <button id="btn-settings" class="sec" type="button">./réglages</button>
+            </div>
+            <div class="row2">
+              <button id="btn-menu-rank" class="sec" type="button">./classement</button>
+              <button id="btn-menu-ach" class="sec" type="button">./succès <span class="pill"><b id="menu-ach">0/0</b></span></button>
+            </div>
+            <div class="profile">
+              <div><small>RECORD</small><b id="menu-best">0</b></div>
+              <div><small>PARTIES</small><b id="menu-games">0</b></div>
+              <div><small>VICTOIRES</small><b id="menu-wins">0</b></div>
+              <div><small>COOKIES GAGNÉS</small><b id="menu-total">0</b></div>
+            </div>
+            <p class="keys"><kbd>Échap</kbd> pause · <kbd>M</kbd> son · <kbd>R</kbd> recommencer</p>
+          </div>
+          <div class="panel side" data-title="whoami">
+            <p class="eyebrow" id="menu-who">root@invité</p>
+            <div id="menu-skin" class="skin-big"></div>
+            <h3 id="menu-skin-name">Classique</h3>
+            <p class="utitle" id="menu-title">[ Script kiddie ]</p>
+            <button id="btn-skin-edit" class="ghost" type="button">Personnaliser</button>
+            <ul class="howto">
+              <li><span>1</span> Bouge ta souris (ou ton doigt)</li>
+              <li><span>2</span> Évite tout ce qui est plein</li>
+              <li><span>3</span> Cookies = boutique, bonus = survie</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Réglages ===== -->
+      <section id="screen-settings" class="screen">
+        <div class="panel wide" data-title="root@scroll:~/réglages">
+          <h2 class="plain">Réglages</h2>
+
+          <h5>Profil</h5>
+          <div class="field"><label for="set-pseudo">Pseudo (affiché au classement)</label><input id="set-pseudo" class="txt" type="text" maxlength="14" placeholder="invité" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+
+          <h5>Partie <small>(prend effet à la prochaine partie)</small></h5>
+          <div class="field"><label>Durée du niveau</label>
+            <div class="seg" data-setting="duration">
+              <button data-v="5" type="button">5 min</button><button data-v="10" type="button">10 min</button>
+              <button data-v="30" type="button">30 min</button><button data-v="0" type="button">Infini</button>
+            </div>
+          </div>
+          <div class="field"><label>Difficulté</label>
+            <div class="seg" data-setting="difficulty">
+              <button data-v="zen" type="button">Zen</button><button data-v="normal" type="button">Normal</button>
+              <button data-v="infernal" type="button">Infernal</button>
+            </div>
+          </div>
+          <p class="hint" id="diff-desc"></p>
+
+          <h5>Affichage</h5>
+          <label class="sw"><input type="checkbox" data-setting="showHit"><span></span>Montrer ma zone de collision (le petit cercle)</label>
+          <label class="sw"><input type="checkbox" data-setting="showDanger"><span></span>Entourer en rouge les blocs proches</label>
+          <label class="sw"><input type="checkbox" data-setting="shake"><span></span>Secousses de l’écran à la collision</label>
+          <label class="sw"><input type="checkbox" data-setting="trails"><span></span>Afficher la traînée de la souris</label>
+
+          <h5>Son et contrôles</h5>
+          <div class="field"><label>Volume</label><div class="range"><input type="range" data-setting="volume" min="0" max="1" step="0.05"><output></output></div></div>
+          <label class="sw"><input type="checkbox" data-setting="muted"><span></span>Couper le son</label>
+          <div class="field"><label>Sensibilité tactile</label><div class="range"><input type="range" data-setting="touchSens" min="0.8" max="2.4" step="0.1"><output></output></div></div>
+
+          <h5>Données</h5>
+          <button id="btn-reset" class="ghost wide-btn" type="button">rm -rf progression</button>
+
+          <button id="btn-settings-back" class="big" type="button">RETOUR</button>
+        </div>
+      </section>
+
+      <!-- ===== Boutique ===== -->
+      <section id="screen-shop" class="screen">
+        <div class="panel wide shop" data-title="root@scroll:~/boutique">
+          <header class="shop-head">
+            <h2 class="plain">Boutique</h2>
+            <div class="pill big"><span class="cookie-ico"></span><b id="shop-cookies">0</b></div>
+          </header>
+          <nav id="shop-tabs" class="tabs"></nav>
+          <div id="shop-grid" class="grid"></div>
+          <p class="hint">Gagne des cookies en les ramassant et en fin de partie. Certains objets ne s’obtiennent qu’avec un succès. Les souris n’ont aucun effet sur la zone de collision. <span id="shop-count"></span></p>
+          <button id="btn-shop-back" class="big" type="button">RETOUR</button>
+        </div>
+      </section>
+
+      <!-- ===== Classement ===== -->
+      <section id="screen-rank" class="screen">
+        <div class="panel wide rank" data-title="root@scroll:~/classement">
+          <header class="shop-head">
+            <h2 class="plain">Classement</h2>
+            <div class="pill big who" id="rank-who"></div>
+          </header>
+          <nav id="rank-tabs" class="tabs"></nav>
+          <div id="rank-best"></div>
+          <div id="rank-table" class="table"></div>
+          <div id="rank-records"></div>
+          <button id="btn-rank-back" class="big" type="button">RETOUR</button>
+        </div>
+      </section>
+
+      <!-- ===== Succès ===== -->
+      <section id="screen-ach" class="screen">
+        <div class="panel wide achp" data-title="root@scroll:~/succès">
+          <header class="shop-head">
+            <h2 class="plain">Succès</h2>
+            <div class="pill big"><b id="ach-count">0 / 0</b></div>
+          </header>
+          <div class="totalbar"><i id="ach-total-fill"></i></div>
+          <nav id="ach-tabs" class="tabs"></nav>
+          <div id="ach-grid" class="achs"></div>
+          <button id="btn-ach-back" class="big" type="button">RETOUR</button>
+        </div>
+      </section>
+
+      <!-- ===== Pause ===== -->
+      <section id="screen-pause" class="screen">
+        <div class="panel small" data-title="root@scroll:~/pause">
+          <h2>PAUSE</h2>
+          <p class="tagline">Le site t’attend… mais pas longtemps.</p>
+          <button id="btn-resume" class="big" type="button">&gt; REPRENDRE</button>
+          <button id="btn-pause-settings" class="ghost" type="button">Réglages</button>
+          <button id="btn-restart-pause" class="ghost" type="button">Recommencer</button>
+          <button id="btn-quit" class="ghost" type="button">Quitter au menu</button>
+        </div>
+      </section>
+
+      <!-- ===== Game over ===== -->
+      <section id="screen-over" class="screen">
+        <div class="panel small" data-title="root@scroll:~/crash.log">
+          <h2 id="over-title">ACCÈS REFUSÉ</h2>
+          <p id="over-message" class="tagline"></p>
+          <div class="stats">
+            <div><small>SCORE</small><b id="over-score">0</b></div>
+            <div><small>RECORD</small><b id="over-best">0</b></div>
+            <div><small>TEMPS</small><b id="over-time">0:00</b></div>
+            <div><small>COOKIES GAGNÉS</small><b class="ck-line"><span class="cookie-ico"></span><span id="over-cookies">+0</span></b></div>
+          </div>
+          <p id="over-record" class="record">Nouveau record !</p>
+          <p id="over-rank" class="rankline"></p>
+          <button id="btn-replay" class="big" type="button">&gt; REJOUER</button>
+          <div class="row2">
+            <button id="btn-over-rank" class="ghost" type="button">Classement</button>
+            <button id="btn-over-shop" class="ghost" type="button">Boutique</button>
+            <button id="btn-menu" class="ghost" type="button">Menu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Victoire ===== -->
+      <section id="screen-win" class="screen">
+        <div class="panel small" data-title="root@scroll:~/root.txt">
+          <h2 id="win-title" class="gold">ACCÈS ROOT OBTENU</h2>
+          <p id="win-message" class="tagline"></p>
+          <div class="stats">
+            <div><small>SCORE</small><b id="win-score">0</b></div>
+            <div><small>RECORD</small><b id="win-best">0</b></div>
+            <div><small>TEMPS</small><b id="win-time">0:00</b></div>
+            <div><small>COOKIES GAGNÉS</small><b class="ck-line"><span class="cookie-ico"></span><span id="win-cookies">+0</span></b></div>
+          </div>
+          <p id="win-record" class="record">Nouveau record !</p>
+          <p id="win-rank" class="rankline"></p>
+          <button id="btn-continue" class="big" type="button">&gt; CONTINUER EN MODE INFINI</button>
+          <div class="row2">
+            <button id="btn-win-replay" class="ghost" type="button">Rejouer</button>
+            <button id="btn-win-rank" class="ghost" type="button">Classement</button>
+            <button id="btn-win-shop" class="ghost" type="button">Boutique</button>
+            <button id="btn-win-menu" class="ghost" type="button">Menu</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/cosmetics.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/trail.js"></script>
+  <script src="js/hacker.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
