@@ -13,6 +13,13 @@
   <link rel="stylesheet" href="css/hacker.css">
 </head>
 <body>
+  <div id="phone-block">
+    <div class="panel" data-title="root@scroll:~/accès">
+      <h2>ACCÈS REFUSÉ</h2>
+      <p class="tagline">Scroll Infernal n’est pas encore disponible sur <b>téléphone ou tablette</b>.</p>
+      <p class="tagline">Ouvre-le sur un <b>ordinateur avec une souris</b> pour jouer.</p>
+    </div>
+  </div>
   <div id="boot"><pre></pre><p>[ clic ou touche : passer ]</p></div>
   <div id="app">
 
@@ -37,7 +44,7 @@
       <div id="world"></div>
       <canvas id="trail"></canvas>
       <canvas id="matrix"></canvas>
-      <div id="player" class="hidden"><div class="skin"></div><span class="ring"></span></div>
+      <div id="player" class="pl hidden"><div class="skin"></div><span class="ring"></span></div>
       <div id="effects"></div>
       <div id="flash"></div>
       <div id="toast"></div>
@@ -70,16 +77,38 @@
           </div>
           <div class="panel side" data-title="whoami">
             <p class="eyebrow" id="menu-who">root@invité</p>
+            <p class="savestat" id="menu-save"></p>
             <div id="menu-skin" class="skin-big"></div>
             <h3 id="menu-skin-name">Classique</h3>
             <p class="utitle" id="menu-title">[ Script kiddie ]</p>
             <button id="btn-skin-edit" class="ghost" type="button">Personnaliser</button>
             <ul class="howto">
-              <li><span>1</span> Bouge ta souris (ou ton doigt)</li>
+              <li><span>1</span> Bouge ta souris : sur un bord, tu ressors de l’autre côté</li>
               <li><span>2</span> Évite tout ce qui est plein</li>
               <li><span>3</span> Cookies = boutique, bonus = survie</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <!-- ===== Connexion ===== -->
+      <section id="screen-login" class="screen">
+        <div class="panel" data-title="root@scroll:~/login">
+          <p class="eyebrow">// authentification</p>
+          <h2 class="plain">Connexion</h2>
+          <nav id="login-tabs" class="tabs">
+            <button type="button" data-tab="login" class="on">Se connecter</button>
+            <button type="button" data-tab="register">Créer un compte</button>
+          </nav>
+          <form id="login-form" autocomplete="on">
+            <label class="lf"><span>login</span><input id="login-name" class="txt" type="text" maxlength="14" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="pseudo"></label>
+            <label class="lf"><span>password</span><input id="login-pass" class="txt" type="password" autocomplete="current-password" placeholder="••••"></label>
+            <p id="login-note" class="hint"></p>
+            <p id="login-msg" class="msg" role="alert"></p>
+            <button id="btn-login" class="big" type="submit">&gt; SE CONNECTER</button>
+          </form>
+          <button id="btn-guest" class="ghost" type="button">Jouer en invité (sans compte)</button>
+          <p id="login-mode" class="hint"></p>
         </div>
       </section>
 
@@ -88,8 +117,17 @@
         <div class="panel wide" data-title="root@scroll:~/réglages">
           <h2 class="plain">Réglages</h2>
 
-          <h5>Profil</h5>
-          <div class="field"><label for="set-pseudo">Pseudo (affiché au classement)</label><input id="set-pseudo" class="txt" type="text" maxlength="14" placeholder="invité" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <h5>Compte et sauvegarde</h5>
+          <p class="acc-line" id="acc-line"></p>
+          <p class="hint" id="acc-status"></p>
+          <div class="field" id="pseudo-field"><label for="set-pseudo">Pseudo (affiché au classement)</label><input id="set-pseudo" class="txt" type="text" maxlength="14" placeholder="invité" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="row2">
+            <button id="btn-export" class="ghost" type="button">Exporter ma sauvegarde</button>
+            <button id="btn-import" class="ghost" type="button">Importer une sauvegarde</button>
+          </div>
+          <input id="file-import" type="file" accept="application/json,.json" hidden>
+          <button id="btn-logout" class="ghost wide-btn" type="button">Se déconnecter</button>
+          <p class="hint" id="acc-msg"></p>
 
           <h5>Partie <small>(prend effet à la prochaine partie)</small></h5>
           <div class="field"><label>Durée du niveau</label>
@@ -111,11 +149,11 @@
           <label class="sw"><input type="checkbox" data-setting="showDanger"><span></span>Entourer en rouge les blocs proches</label>
           <label class="sw"><input type="checkbox" data-setting="shake"><span></span>Secousses de l’écran à la collision</label>
           <label class="sw"><input type="checkbox" data-setting="trails"><span></span>Afficher la traînée de la souris</label>
+          <label class="sw"><input type="checkbox" data-setting="wrap"><span></span>Passer d’un bord à l’autre de l’écran (capture la souris pendant la partie)</label>
 
           <h5>Son et contrôles</h5>
           <div class="field"><label>Volume</label><div class="range"><input type="range" data-setting="volume" min="0" max="1" step="0.05"><output></output></div></div>
           <label class="sw"><input type="checkbox" data-setting="muted"><span></span>Couper le son</label>
-          <div class="field"><label>Sensibilité tactile</label><div class="range"><input type="range" data-setting="touchSens" min="0.8" max="2.4" step="0.1"><output></output></div></div>
 
           <h5>Données</h5>
           <button id="btn-reset" class="ghost wide-btn" type="button">rm -rf progression</button>
@@ -228,6 +266,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/cosmetics.js"></script>
   <script src="js/themes.js"></script>
   <script src="js/audio.js"></script>

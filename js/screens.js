@@ -43,6 +43,117 @@
     $('menu-who').textContent = 'root@' + s.pseudo.toLowerCase().replace(/\s+/g, '_');
     $('menu-title').textContent = '[ ' + COS.title(eq.title).name + ' ]';
     $('menu-ach').textContent = ACH.count() + '/' + ACH.total();
+    updateStatus();
+  }
+
+  /* ======================= COMPTE / CONNEXION ======================= */
+  var loginTab = 'login', tabTouched = false;
+
+  function updateStatus() {
+    var st = G.auth.status(), s = save.session;
+    var el = $('menu-save');
+    el.textContent = s ? st.txt : 'non connecté';
+    el.className = 'savestat ' + (s ? st.cls : 'warn');
+    $('acc-line').textContent = !s ? '—' : s.type === 'guest' ? 'Invité (non lié à un compte)' : 'Compte : ' + s.name;
+    $('acc-status').textContent = s ? st.txt : '';
+    $('pseudo-field').style.display = save.user ? 'none' : '';
+    $('btn-logout').textContent = save.user ? 'Se déconnecter' : 'Créer un compte / me connecter';
+  }
+
+  // Après un changement de compte : tout se met à jour avec la nouvelle sauvegarde
+  function reloadAll() {
+    game().applySettings(); game().applyCosmetics();
+    syncSettings(); renderShop(); refreshHub();
+  }
+
+  function renderLogin(msg) {
+    var reg = loginTab === 'register', old = G.auth.legacy();
+    $('login-tabs').querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === loginTab); });
+    $('btn-login').textContent = reg ? '> CRÉER LE COMPTE' : '> SE CONNECTER';
+    $('login-pass').autocomplete = reg ? 'new-password' : 'current-password';
+    $('login-note').textContent = reg
+      ? (old ? 'Ta progression actuelle sur cet appareil (' + fmtN(old.cookies || 0) + ' cookies, ' + ((old.stats && old.stats.games) || 0) + ' parties) sera reprise dans ce compte.'
+             : 'Pseudo : 3 à 14 caractères (lettres, chiffres, _ - .). Mot de passe : 4 minimum.')
+      : '';
+    $('btn-guest').textContent = old ? 'Continuer en invité avec ma progression actuelle' : 'Jouer en invité (sans compte)';
+    $('login-msg').textContent = msg || '';
+    $('login-mode').textContent = save.volatile
+      ? 'Attention : ton navigateur refuse de sauvegarder (navigation privée ?). Ta progression sera perdue en fermant la page.'
+      : G.auth.mode === 'cloud'
+        ? 'Comptes en ligne : ta progression te suit sur tous tes appareils.'
+        : 'Comptes sur cet appareil : ta progression reste dans ce navigateur. Exporte-la dans Réglages pour la déplacer.';
+  }
+
+  function openLogin(msg, recompute) {
+    if (ui.current !== 'login' || (recompute && !tabTouched)) {
+      var hasLocal = Object.keys(save.read(save.K.accounts) || {}).length > 0, seen = save.read('scrollInfernal.lastUser');
+      loginTab = (hasLocal || seen) ? 'login' : 'register';   // 1re visite : création de compte
+      if (seen && !$('login-name').value) $('login-name').value = seen;
+    }
+    renderLogin(msg);
+    ui.show('login');
+    setTimeout(function () { try { $('login-name').focus(); } catch (e) { /* ignore */ } }, 50);
+  }
+
+  function enterGame(text) {
+    if (save.user) save.write('scrollInfernal.lastUser', save.user);
+    reloadAll();
+    ACH.check(null);
+    ui.show('menu');
+    if (text) ui.toast(text, 2600);
+  }
+
+  function bindAuth() {
+    $('login-tabs').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-tab]');
+      if (!b) return;
+      loginTab = b.dataset.tab; tabTouched = true; audio.click(); renderLogin();
+    });
+    $('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = $('login-name').value, pass = $('login-pass').value, btn = $('btn-login'), reg = loginTab === 'register';
+      btn.disabled = true; $('login-msg').textContent = '…';
+      Promise.resolve(G.auth.ready).then(function () {
+        return reg ? G.auth.register(name, pass, true) : G.auth.login(name, pass);
+      }).then(function (r) {
+        btn.disabled = false;
+        if (!r.ok) { $('login-msg').textContent = r.error; return; }
+        $('login-pass').value = '';
+        enterGame(r.claimed ? 'Compte créé : ta progression a été reprise.' : (reg ? 'Compte créé. Bienvenue, ' + save.user + ' !' : 'Connecté : ' + save.user));
+      }).catch(function () { btn.disabled = false; $('login-msg').textContent = 'Erreur inattendue. Réessaie.'; });
+    });
+    $('btn-guest').addEventListener('click', function () {
+      audio.click(); G.auth.guest();
+      enterGame('Mode invité : crée un compte plus tard pour protéger ta progression.');
+    });
+
+    // Compte (dans les réglages)
+    $('btn-export').addEventListener('click', function () {
+      G.auth.download(); $('acc-msg').textContent = 'Sauvegarde téléchargée (fichier .json). Garde-la précieusement !';
+    });
+    $('btn-import').addEventListener('click', function () { $('file-import').click(); });
+    $('file-import').addEventListener('change', function (e) {
+      var f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      if (f.size > 2e6) { $('acc-msg').textContent = 'Fichier trop gros.'; return; }
+      var rd = new FileReader();
+      rd.onload = function () {
+        if (!window.confirm('Remplacer ta progression actuelle par cette sauvegarde ?')) return;
+        var r = G.auth.importText(String(rd.result));
+        $('acc-msg').textContent = r.ok ? 'Sauvegarde importée !' : r.error;
+        if (r.ok) { reloadAll(); ACH.check(null); }
+      };
+      rd.readAsText(f);
+    });
+    $('btn-logout').addEventListener('click', function () {
+      audio.click();
+      game().toMenu();
+      G.auth.logout().then(function () { reloadAll(); openLogin(); });
+    });
+
+    G.auth.onStatus = updateStatus;
+    G.auth.onRemote = function (m) { reloadAll(); ui.toast(m, 2600); };
+    G.auth.onExpired = function () { reloadAll(); game().toMenu(); openLogin('Session expirée : reconnecte-toi.'); };
   }
 
   /* ======================= RÉGLAGES ======================= */
@@ -326,6 +437,7 @@
     openShop: function (from) { renderShop(); ui.show('shop', from); },
     openSettings: function (from) { syncSettings(); ui.show('settings', from); },
     openRank: function (from) { renderRank(); ui.show('rank', from); },
+    openLogin: openLogin, bindAuth: bindAuth, reloadAll: reloadAll, updateStatus: updateStatus,
     openAch: function (from) { renderAch(); ui.show('ach', from); },
     onAch: function () {
       refreshHub();

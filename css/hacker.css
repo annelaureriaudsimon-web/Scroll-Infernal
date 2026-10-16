@@ -28,8 +28,8 @@ button,input{font-family:var(--mono)}
 
 /* ---------- Zone de jeu ---------- */
 #matrix{position:absolute;inset:0;width:100%;height:100%;z-index:9;pointer-events:none}
-#player .ring{border-color:var(--bad);background:rgba(255,56,96,.2)}
-#player.shielded::before{border-color:var(--g2);box-shadow:0 0 14px var(--g2);background:rgba(var(--g-rgb),.1)}
+.pl .ring{border-color:var(--bad);background:rgba(255,56,96,.2)}
+.pl.shielded::before{border-color:var(--g2);box-shadow:0 0 14px var(--g2);background:rgba(var(--g-rgb),.1)}
 #flash{background:var(--bad)}
 #flash.cyan{background:var(--g2)}
 #toast{background:#000;border:1px solid var(--g);border-radius:2px;color:var(--g);text-shadow:0 0 6px rgba(var(--g-rgb),.6);font-size:13px;box-shadow:0 0 14px rgba(var(--g-rgb),.3)}
@@ -41,7 +41,7 @@ button,input{font-family:var(--mono)}
 /* glitch de la couleur « Glitch » */
 @keyframes gl{0%,70%,100%{filter:none;transform:none}72%{filter:hue-rotate(140deg) drop-shadow(2px 0 var(--g2));transform:translate(2px,-1px)}
   76%{filter:hue-rotate(260deg) drop-shadow(-2px 0 #ff2e97);transform:translate(-2px,1px)}80%{filter:none;transform:translateX(1px)}}
-#player.glitch .skin,.glitch>svg,.skin-big.glitch svg,.bc-skin.glitch svg{animation:gl 1.6s steps(1) infinite}
+.pl.glitch .skin,.glitch>svg,.skin-big.glitch svg,.bc-skin.glitch svg{animation:gl 1.6s steps(1) infinite}
 
 /* ---------- Écrans ---------- */
 .screen{background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px),rgba(1,6,6,.84);
@@ -224,9 +224,30 @@ input.txt::placeholder{color:rgba(var(--g-rgb),.35)}
 #boot pre::after{content:"█";animation:cur .8s steps(1) infinite}
 
 @media (max-width:520px){.panel{padding:42px 14px 14px}.ach .rw{display:none}}
-@media (prefers-reduced-motion:reduce){h1 .gl::before,h1 .gl::after,#screen-over h2,.glitch>svg,#player.glitch .skin{animation:none}}
+@media (prefers-reduced-motion:reduce){h1 .gl::before,h1 .gl::after,#screen-over h2,.glitch>svg,.pl.glitch .skin{animation:none}}
 
 .grid+.hint{margin:14px 0 4px}
 .panel .row2+.row2{margin-top:10px}
 .pill.big.who{display:block;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shop-head h2{white-space:nowrap}
+
+/* connexion, compte, blocage téléphone */
+.lf{display:block;margin:12px 0;text-align:left}
+.lf span{display:block;margin-bottom:4px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(var(--g-rgb),.65)}
+.lf span::before{content:"> "}
+.lf input.txt{width:100%}
+#screen-login .tabs{margin:6px 0 4px}
+#screen-login .hint{text-align:left;margin:4px 0 10px}
+.msg{min-height:18px;margin:2px 0 8px;text-align:left;font-size:12px;color:var(--bad)}
+#screen-login .panel{max-width:420px}
+.savestat{margin:-2px 0 6px;font-size:11px;color:rgba(var(--g-rgb),.7)}
+.savestat::before{content:"● ";color:var(--g)}
+.savestat.warn{color:var(--amber)}.savestat.warn::before{color:var(--amber)}
+.acc-line{margin:2px 0 2px;font-size:14px;color:#fff}
+.acc-btns,.panel.wide .row2{margin:8px 0}
+#phone-block{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:16px;background:#000}
+body.blocked #phone-block{display:flex}
+body.blocked #app,body.blocked #boot{display:none!important}
+#phone-block .panel{max-width:380px}
+#phone-block h2{color:var(--bad);text-shadow:0 0 12px rgba(255,56,96,.5)}
+#player-wrap{z-index:8}

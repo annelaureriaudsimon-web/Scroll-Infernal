@@ -21,6 +21,13 @@
     this.world = document.getElementById('world');
     this.playerEl = document.getElementById('player');
     this.skinEl = this.playerEl.querySelector('.skin');
+    // 2e exemplaire de la souris : visible de l'autre côté quand on est tout au bord
+    this.wrapEl = this.playerEl.cloneNode(true);
+    this.wrapEl.id = 'player-wrap';
+    this.wrapEl.style.display = 'none';
+    this.stage.appendChild(this.wrapEl);
+    this.wrapSkin = this.wrapEl.querySelector('.skin');
+    this._cls = '';
     this.sections = [];
     this.nearItems = [];
     this.state = 'menu';
@@ -63,6 +70,9 @@
     this.skinEl.innerHTML = sk.build(col.v);
     this.skinEl.style.left = (-sk.cx) + 'px';
     this.skinEl.style.top = (-sk.cy) + 'px';
+    this.wrapSkin.innerHTML = this.skinEl.innerHTML;
+    this.wrapSkin.style.left = this.skinEl.style.left;
+    this.wrapSkin.style.top = this.skinEl.style.top;
     this.playerEl.classList.toggle('rainbow', !!col.rainbow);
     this.playerEl.classList.toggle('glitch', !!col.glitch);
     var th = COS.ui(eq.ui), st = document.documentElement.style;
@@ -128,6 +138,7 @@
     this.fxMax.adblock = 8 * (1 + 0.25 * U.power);
     this.banked = false;
     this.state = 'playing';
+    this.lock();
     this.grace = C.graceStart + 0.5 * U.grace;
     this.rec = this.newRun(S);
     this.achT = 0; this.sx = this.px; this.sy = this.py; this.curStill = 0; this.curNo = 0;
@@ -160,6 +171,7 @@
   Game.prototype.pause = function () {
     if (this.state !== 'playing') return;
     this.state = 'paused';
+    this.unlock();
     document.body.classList.remove('playing');
     ui.show('pause');
   };
@@ -167,6 +179,7 @@
   Game.prototype.resume = function () {
     if (this.state !== 'paused') return;
     this.state = 'playing';
+    this.lock();
     this.grace = C.graceResume + 0.5 * save.data.upgrades.grace;
     this.lx = this.px; this.ly = this.py;
     document.body.classList.add('playing');
@@ -176,6 +189,7 @@
   Game.prototype.toMenu = function () {
     if (this.state === 'playing' || this.state === 'paused') this.bank('quit');
     this.state = 'menu';
+    this.unlock();
     document.body.classList.remove('playing');
     this.playerEl.classList.add('hidden');
     G.trail.clear();
@@ -189,6 +203,7 @@
   // Après la victoire : on continue en mode infini
   Game.prototype.continueEndless = function () {
     if (this.state !== 'won') return;
+    this.lock();
     this.endless = true;
     this.banked = false;
     if (this.rec) this.rec.endless = true;
@@ -205,11 +220,34 @@
     var r = this.stage.getBoundingClientRect();
     this.setPlayer(clientX - r.left, clientY - r.top);
   };
-  Game.prototype.movePlayerBy = function (dx, dy) { this.setPlayer(this.px + dx, this.py + dy); };
-  Game.prototype.setPlayer = function (x, y) {
+  // free = souris capturée : on ne s'arrête pas au bord, on ressort de l'autre côté
+  Game.prototype.movePlayerBy = function (dx, dy, free) {
+    var x = this.px + dx;
+    if (free && this.isWrap()) {
+      var k = Math.floor(x / this.W);
+      if (k) { x -= k * this.W; this.lx -= k * this.W; }   // on décale aussi le point de départ : pas de « saut » à travers l'écran
+      this.setPlayer(x, this.py + dy, true);
+    } else this.setPlayer(x, this.py + dy);
+  };
+  Game.prototype.setPlayer = function (x, y, free) {
     var m = C.hitRadius;
-    this.px = Math.max(m, Math.min(this.W - m, x));
+    this.px = free ? Math.max(0, Math.min(this.W - 0.01, x)) : Math.max(m, Math.min(this.W - m, x));
     this.py = Math.max(m, Math.min(this.H - m, y));
+  };
+
+  /* --- Capture de la souris (nécessaire pour passer d'un bord à l'autre) --- */
+  Game.prototype.isWrap = function () {
+    return !!save.data.settings.wrap && document.pointerLockElement === this.stage;
+  };
+  Game.prototype.lock = function () {
+    if (!save.data.settings.wrap || this.touchMode || document.pointerLockElement === this.stage) return;
+    try {
+      var p = this.stage.requestPointerLock && this.stage.requestPointerLock();
+      if (p && p.catch) p.catch(function () { /* refusé : on joue avec la souris normale */ });
+    } catch (e) { /* ignore */ }
+  };
+  Game.prototype.unlock = function () {
+    if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
   };
 
   /* --- Simulation ------------------------------------------------------- */
@@ -363,6 +401,12 @@
     var steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6));
     var minY = Math.min(y0, y1) - near, maxY = Math.max(y0, y1) + near;
     var hit = null, nowNear = [];
+    var offs = [0];
+    if (this.isWrap()) {          // tout au bord, la souris existe aussi de l'autre côté
+      var ed = near + r + 2, mn = Math.min(x0, x1), mx = Math.max(x0, x1);
+      if (mn < ed) offs.push(W);
+      if (mx > W - ed) offs.push(-W);
+    }
 
     for (var i = 0; i < this.sections.length && !hit; i++) {
       var sec = this.sections[i];
@@ -374,12 +418,14 @@
         if (it.dead || (adb && SAFE_ADBLOCK[it.type])) continue;
         var rx = it.x * W, rw = it.w * W, ry = top + it.y, rh = it.h;
         var best = Infinity;
-        for (var s = 1; s <= steps; s++) {
-          var k = s / steps, cx = x0 + (x1 - x0) * k, cy = y0 + (y1 - y0) * k;
-          var dx = Math.max(rx - cx, 0, cx - (rx + rw));
-          var dy = Math.max(ry - cy, 0, cy - (ry + rh));
-          var d2 = dx * dx + dy * dy;
-          if (d2 < best) best = d2;
+        for (var oi = 0; oi < offs.length; oi++) {
+          for (var s = 1; s <= steps; s++) {
+            var k = s / steps, cx = x0 + (x1 - x0) * k + offs[oi], cy = y0 + (y1 - y0) * k;
+            var dx = Math.max(rx - cx, 0, cx - (rx + rw));
+            var dy = Math.max(ry - cy, 0, cy - (ry + rh));
+            var d2 = dx * dx + dy * dy;
+            if (d2 < best) best = d2;
+          }
         }
         if (best < r * r) { hit = it; break; }
         if (best < near * near) nowNear.push(it);
@@ -462,6 +508,7 @@
 
   Game.prototype.win = function () {
     this.state = 'won';
+    this.unlock();
     document.body.classList.remove('playing');
     this.bank('win');
     audio.win();
@@ -475,6 +522,7 @@
   Game.prototype.die = function (item) {
     var self = this;
     this.state = 'dying';
+    this.unlock();
     document.body.classList.remove('playing');
     item.el.classList.add('hit');
     this.playerEl.classList.add('dead');
@@ -506,6 +554,13 @@
     this.playerEl.style.transform = 'translate3d(' + this.px + 'px,' + this.py + 'px,0)';
     this.playerEl.classList.toggle('ghost', this.state === 'playing' && this.grace > 0);
     this.playerEl.classList.toggle('shielded', this.shield > 0 && (this.state === 'playing' || this.state === 'paused'));
+    var cls = this.playerEl.className;
+    if (cls !== this._cls) { this._cls = cls; this.wrapEl.className = cls.replace(/\bhidden\b/, '').trim(); }
+    var edge = this.W - 30, shown = this.state !== 'menu' && this.isWrap() && (this.px < 30 || this.px > edge);
+    if (shown) {
+      this.wrapEl.style.display = 'block';
+      this.wrapEl.style.transform = 'translate3d(' + (this.px < 30 ? this.px + this.W : this.px - this.W) + 'px,' + this.py + 'px,0)';
+    } else if (this.wrapEl.style.display !== 'none') this.wrapEl.style.display = 'none';
     if (this.state === 'playing') {
       var progress = this.endless ? (this.t % C.curveLen) / C.curveLen : Math.min(1, this.t / C.duration);
       ui.setHud({

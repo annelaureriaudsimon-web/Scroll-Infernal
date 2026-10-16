@@ -16,6 +16,13 @@
   };
 
   var C = G.CONFIG = {
+    allowMobile: false,    // false = le jeu est bloqué sur téléphone / tablette (sans souris). Mets true pour le réactiver.
+    isMobile: function () {
+      var mm = window.matchMedia;
+      var noMouse = !!mm && !mm('(any-pointer: fine)').matches && mm('(any-pointer: coarse)').matches;
+      var phoneUA = /Android.+Mobile|iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent || '');
+      return noMouse || phoneUA;
+    },
     hitRadius: 7,          // rayon de la zone de collision de la souris (px)
     nearDistance: 38,      // un élément plus proche devient rouge (alerte)
     lookahead: 500,        // on génère le site un peu au-dessus de l'écran (px)

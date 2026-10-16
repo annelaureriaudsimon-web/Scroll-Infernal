@@ -4,6 +4,8 @@
 (function () {
   'use strict';
   var G = window.SiteGame;
+  // Téléphone / tablette sans souris : le jeu est bloqué pour l'instant (CONFIG.allowMobile)
+  if (!G.CONFIG.allowMobile && G.CONFIG.isMobile()) { document.body.classList.add('blocked'); return; }
   G.trail.init();
   var game = G.game = new G.Game();
   var ui = G.ui, audio = G.audio, save = G.save;
@@ -14,7 +16,10 @@
     $(id).addEventListener('click', function (e) { e.currentTarget.blur(); audio.click(); fn(); });
   }
 
-  function startGame() { game.start(); }
+  function startGame() {
+    if (!save.session) { G.screens.openLogin(); return; }   // jamais de partie sans être connecté (ou invité)
+    game.start();
+  }
   function toggleSound() {
     audio.setMuted(!audio.isMuted());
     game.applySettings();
@@ -64,25 +69,38 @@
       var k = save.data.settings.touchSens;
       if (lastTX !== null) game.movePlayerBy((e.clientX - lastTX) * k, (e.clientY - lastTY) * k);
       lastTX = e.clientX; lastTY = e.clientY;
+    } else if (document.pointerLockElement === $('stage')) {
+      // souris capturée : on additionne les déplacements (et on ressort de l'autre côté aux bords)
+      var cap = 300;
+      game.movePlayerBy(Math.max(-cap, Math.min(cap, e.movementX || 0)), Math.max(-cap, Math.min(cap, e.movementY || 0)), true);
     } else {
       game.touchMode = false;
       game.movePlayerTo(e.clientX, e.clientY);
     }
   });
+
+  // Échap (ou clic hors de la page) rend la souris : on met la partie en pause
+  var wrapHint = false;
+  document.addEventListener('pointerlockchange', function () {
+    if (document.pointerLockElement === $('stage')) {
+      if (!wrapHint) { wrapHint = true; ui.toast('Va tout au bord : tu ressors de l’autre côté !', 2600); }
+    } else if (game.state === 'playing') { lockLost = performance.now(); game.pause(); }
+  });
+  var lockLost = 0;
   window.addEventListener('pointerup', function () { lastTX = lastTY = null; });
 
   /* --- Clavier ----------------------------------------------------------- */
   window.addEventListener('keydown', function (e) {
     var k = e.key, s = game.state, cur = ui.current;
     if (G.hacker && G.hacker.booting) return;
-    if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') {   // on tape un pseudo : pas de raccourcis
-      if (k === 'Escape' || k === 'Enter') e.target.blur();
+    if (e.target && e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'password')) {   // on tape un pseudo : pas de raccourcis
+      if (k === 'Escape' || (k === 'Enter' && !e.target.form)) e.target.blur();
       return;
     }
     if (k === 'Escape' || k === 'p' || k === 'P') {
       if (cur === 'settings' || cur === 'shop' || cur === 'rank' || cur === 'ach') { ui.back(); G.screens.refresh(); }
       else if (s === 'playing') game.pause();
-      else if (s === 'paused') game.resume();
+      else if (s === 'paused' && performance.now() - lockLost > 300) game.resume();   // (Échap qui vient de rendre la souris ne reprend pas aussitôt)
       e.preventDefault();
     } else if (k === 'm' || k === 'M') {
       toggleSound();
@@ -103,4 +121,13 @@
   game.run();
   G.hacker.rain(true);   // le menu est ouvert au départ
   G.hacker.boot();
+
+  /* --- Comptes : on montre la connexion tout de suite si personne n'est connecté --- */
+  G.screens.bindAuth();
+  if (G.auth.needLogin()) G.screens.openLogin();
+  G.auth.ready = G.auth.detect().then(function (mode) {
+    if (ui.current === 'login') G.screens.openLogin('', true);     // met à jour le texte (comptes en ligne ou sur cet appareil)
+    if (save.cloud) return G.auth.resume().then(function (st) { if (st === 'updated') G.screens.reloadAll(); else G.screens.updateStatus(); });
+    G.screens.updateStatus();
+  });
 })();

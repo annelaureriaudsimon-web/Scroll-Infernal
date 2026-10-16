@@ -6,7 +6,7 @@
   var G = window.SiteGame = window.SiteGame || {};
   function $(id) { return document.getElementById(id); }
 
-  var NAMES = ['menu', 'settings', 'shop', 'rank', 'ach', 'pause', 'over', 'win'];
+  var NAMES = ['login', 'menu', 'settings', 'shop', 'rank', 'ach', 'pause', 'over', 'win'];
   var screens = {};
   NAMES.forEach(function (n) { screens[n] = $('screen-' + n); });
   var hud = { score: $('hud-score'), speed: $('hud-speed'), stage: $('hud-stage'), time: $('hud-time'), cookies: $('hud-cookies'), bar: $('loadbar-fill') };

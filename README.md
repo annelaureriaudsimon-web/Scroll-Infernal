@@ -35,8 +35,17 @@ Page « ./classement » : ta **meilleure partie** (score, mode, temps, vitesse m
 ## Interface « hacking »
 Terminal vert, pluie de code derrière les menus, démarrage façon ordinateur (une fois par session, clic pour passer), effet glitch. Le thème se change dans la boutique.
 
+## Compte et sauvegarde (ta progression ne disparaît plus)
+Au premier lancement, une **page de connexion** s'affiche : crée un compte (pseudo + mot de passe) ou joue en invité. Ensuite, quand tu reviens, tu es **reconnecté tout seul** et tu retrouves cookies, achats, succès et classement.
+- Ton **ancienne progression** (avant les comptes) est reprise dans le premier compte que tu crées.
+- **Réglages → Compte** : exporter / importer ta sauvegarde (fichier .json), se déconnecter.
+- Si le jeu est simplement ouvert comme un fichier ou un site statique, les comptes sont **sur cet appareil / ce navigateur** : si tu vides les données du navigateur, ou que tu changes d'appareil, il faut importer ta sauvegarde.
+- Pour des **comptes en ligne** (même progression sur tous tes appareils), lance le petit serveur inclus (Node.js 18+, aucune installation) :
+  `node server/server.js` puis ouvre http://localhost:8000. Le jeu détecte tout seul le serveur. Les comptes sont dans `server/data/db.json` (mots de passe hachés). Pour un site public, mets-le derrière HTTPS.
+
 ## Commandes
-- Souris (ou doigt sur mobile) : se déplacer
+- Souris : se déplacer. **Va tout au bord de l'écran : tu ressors de l'autre côté** (la souris est capturée pendant la partie ; `Échap` la rend et met en pause ; désactivable dans Réglages).
+- Téléphone / tablette : le jeu est **bloqué pour l'instant** (`allowMobile` dans `js/config.js` pour le réactiver).
 - `Échap` / `P` : pause · `M` : son · `R` : recommencer · `Entrée` / `Espace` : jouer
 
 ## Structure
@@ -44,7 +53,9 @@ Terminal vert, pluie de code derrière les menus, démarrage façon ordinateur (
 index.html          page du jeu (menu, réglages, boutique, classement, succès, pause, fin)
 css/                base.css · site-elements.css (faux sites) · ui.css · screens.css · hacker.css (thème terminal)
 js/config.js        RÉGLAGES de difficulté (vitesse max, largeur des trous…)
-js/storage.js       sauvegarde (cookies, achats, réglages, records) dans le navigateur
+js/storage.js       sauvegarde (cookies, achats, réglages, records) par compte, dans le navigateur
+js/auth.js          connexion, comptes, export/import, synchronisation avec le serveur
+server/server.js    serveur optionnel (comptes en ligne) — `node server/server.js`
 js/cosmetics.js     catalogue de la boutique (dessins SVG des souris)
 js/themes.js        les sites inventés et leurs textes
 js/generator.js     génération du site rangée par rangée (toujours franchissable) + cookies/bonus
