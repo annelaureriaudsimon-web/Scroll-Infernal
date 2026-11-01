@@ -15,7 +15,7 @@
   'use strict';
   var G = window.SiteGame = window.SiteGame || {};
   var save = G.save, K = save.K;
-  var NAME_RE = /^[\p{L}\p{N}_\-.]{3,14}$/u;
+  var NAME_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   var ITER = 120000;
 
   /* ------------------------------ outils ------------------------------ */
@@ -44,10 +44,9 @@
   function accounts() { return save.read(K.accounts) || {}; }
   function fail(msg) { return { ok: false, error: msg }; }
   function checkName(name) {
-    if (!NAME_RE.test(name || '')) return 'Pseudo : 3 à 14 caractères (lettres, chiffres, _ - .)';
+    if (!NAME_RE.test(name || '')) return 'E-mail invalide (ex: vous@exemple.com)';
     return '';
-  }
-  function checkPass(pass) { return (pass || '').length >= 4 ? '' : 'Mot de passe : 4 caractères minimum'; }
+  }  function checkPass(pass) { return (pass || '').length >= 4 ? '' : 'Mot de passe : 4 caractères minimum'; }
 
   // Progression d'avant les comptes (invité), si elle existe et n'a pas encore été reprise
   function legacy() {
