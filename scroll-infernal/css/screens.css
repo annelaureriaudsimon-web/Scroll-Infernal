@@ -1,0 +1,114 @@
+/* screens.css — menu principal, réglages, boutique, cookies, bonus actifs */
+
+/* ---------- Cookie (monnaie) ---------- */
+.cookie-ico{display:inline-block;flex:none;width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:4px;
+  background:radial-gradient(circle at 30% 35%,#4a2c12 0 1.6px,transparent 2.2px),radial-gradient(circle at 66% 42%,#4a2c12 0 1.3px,transparent 1.9px),radial-gradient(circle at 48% 72%,#4a2c12 0 1.6px,transparent 2.2px),#d9a066;
+  box-shadow:0 0 0 1px #6b3e1a}
+.pill{display:inline-flex;align-items:center;gap:2px;margin-left:8px;padding:2px 9px;border-radius:999px;background:rgba(0,0,0,.35);font-size:13px}
+.pill.big{margin:0;padding:6px 16px;font-size:20px;background:#1b1f2d;border:1px solid #2a2f42}
+.pill.big .cookie-ico{width:22px;height:22px}
+.ck-line{display:inline-flex;align-items:center;justify-content:flex-end}
+.hud-item .ck-line .cookie-ico{width:14px;height:14px;margin-right:4px}
+
+/* ---------- Menu principal ---------- */
+.hub{display:grid;grid-template-columns:minmax(0,480px) 250px;gap:16px;align-items:stretch;max-width:100%}
+.hub .panel{max-width:none}
+.hub .panel.side{display:flex;flex-direction:column;align-items:center;gap:6px}
+.skin-big{display:flex;align-items:center;justify-content:center;width:150px;height:150px;margin:6px 0;border-radius:50%;
+  background:radial-gradient(circle,#2a2f45,#12151f 70%);animation:bob 2.4s ease-in-out infinite}
+.skin-big svg{width:auto;height:92px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.skin-big.rainbow{animation:bob 2.4s ease-in-out infinite,hue 2.5s linear infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+.panel.side h3{font-size:20px;margin-bottom:6px}
+.panel.side .howto{margin-top:12px}
+.modeline{margin:10px 0 12px;font-size:13px;color:#aab0c6}
+.row2{display:flex;gap:10px}
+.row2>button{flex:1}
+.row2 button.sec,.row2 button.ghost{margin-top:0}
+button.sec{padding:12px 8px;border-radius:12px;border:1px solid #3a3f52;background:#1b1f2d;font-weight:800;letter-spacing:.06em;font-size:14px;color:#fff}
+button.sec:hover{background:#262b3f}
+.profile{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px}
+.profile div{padding:8px 4px;border-radius:10px;background:#1b1f2d}
+.profile small{display:block;font-size:9px;letter-spacing:.1em;color:#8a90a2;margin-bottom:2px}
+.profile b{font-size:16px;color:#fff;font-variant-numeric:tabular-nums}
+
+/* ---------- Écrans larges (réglages, boutique) ---------- */
+.screen:has(.panel.wide){align-items:flex-start}
+.panel.wide{max-width:640px;margin:auto;text-align:left}
+.panel.wide h2.plain{color:#fff;text-align:left;margin-bottom:10px}
+.panel.wide h5{margin:16px 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8a90a2;border-bottom:1px solid #2a2f42;padding-bottom:5px}
+.panel.wide h5 small{text-transform:none;letter-spacing:0;font-weight:400;font-size:11px;color:#6c7288}
+.panel.wide .big{margin-top:20px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0;flex-wrap:wrap}
+.field>label{font-size:14px;color:#dfe3f2}
+.hint{margin:6px 0 0;font-size:12px;color:#8a90a2;min-height:16px}
+.seg{display:inline-flex;border:1px solid #3a3f52;border-radius:10px;overflow:hidden}
+.seg button{padding:7px 14px;border:0;border-right:1px solid #3a3f52;background:#1b1f2d;font-size:13px;font-weight:700;color:#aab0c6}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:#262b3f}
+.seg button.on{background:linear-gradient(120deg,#ff6a00,#ff3d9a);color:#fff}
+
+.sw{display:flex;align-items:center;gap:12px;margin:9px 0;font-size:14px;color:#dfe3f2;cursor:pointer}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw span{position:relative;flex:none;width:40px;height:22px;border-radius:11px;background:#3a3f52;transition:background .15s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+span{background:#3ddc84}
+.sw input:checked+span::after{transform:translateX(18px)}
+.sw input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
+.range{display:flex;align-items:center;gap:10px}
+.range output{min-width:48px;text-align:right;font-size:13px;color:#aab0c6;font-variant-numeric:tabular-nums}
+input[type=range]{width:200px;accent-color:#ff3d9a}
+.wide-btn{width:100%;margin-top:0}
+button.ghost.danger{border-color:#ff4d6d;color:#ff4d6d}
+
+/* ---------- Boutique ---------- */
+.shop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.shop-head h2{margin:0!important}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{padding:8px 16px;border-radius:999px;border:1px solid #3a3f52;background:#1b1f2d;font-size:13px;font-weight:800;color:#aab0c6}
+.tabs button.on{background:linear-gradient(120deg,#ff6a00,#ff3d9a);border-color:transparent;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 10px 10px;text-align:center;border-radius:14px;background:#1b1f2d;border:2px solid transparent}
+.item.on{border-color:#3ddc84}
+.item .prev{display:flex;align-items:center;justify-content:center;width:100%;height:84px;border-radius:10px;background:radial-gradient(circle,#2a2f45,#141824 75%)}
+.item .prev svg{width:auto;height:58px}
+.item .prev .rainbow{animation:hue 2.5s linear infinite}
+.item .prev .none{font-size:12px;color:#6c7288}
+.item h4{font-size:15px;margin-top:4px}
+.item p{flex:1;font-size:12px;line-height:1.35;color:#9aa0b6}
+.item p em{color:#ffd166;font-style:normal}
+.item .pips{display:flex;gap:5px;margin:2px 0}
+.item .pips i{width:18px;height:6px;border-radius:3px;background:#3a3f52}
+.item .pips i.on{background:#3ddc84}
+.item .prev svg{filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.buy{margin-top:6px;width:100%;padding:8px 6px;border:0;border-radius:9px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(120deg,#ff6a00,#ff3d9a)}
+.buy b{margin-left:1px}
+.buy.equip{background:#2d6cdf}
+.buy:disabled{background:#2a2f42;color:#7d839a;cursor:not-allowed}
+.item.on .buy:disabled{background:#1e3a2b;color:#3ddc84}
+
+/* ---------- Bonus actifs (en jeu) ---------- */
+#effects{position:absolute;top:10px;left:10px;z-index:9;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.fx{display:flex;align-items:center;gap:8px;min-width:150px;padding:5px 10px 5px 6px;border-radius:999px;background:rgba(15,17,21,.85);color:#fff;font-size:12px;font-weight:800;position:relative;overflow:hidden}
+.fx .fxi{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%}
+.fx .fxi svg{width:15px;height:15px}
+.fx-shield .fxi{background:#1e88e5}.fx-slow .fxi{background:#7c4dff}.fx-adblock .fxi{background:#e53935}
+.fx .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.15)}
+.fx .bar span{display:block;height:100%;background:#fff}
+
+@media (max-width:860px){
+  .hub{grid-template-columns:minmax(0,480px)}
+  .hub .panel.side{display:none}
+}
+@media (max-width:520px){
+  .profile{grid-template-columns:repeat(2,1fr)}
+  .panel{padding:20px 16px 16px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .row2{flex-wrap:wrap}
+}
+
+/* ---------- Petits ajustements ---------- */
+.panel h2.gold{color:#ffd166;font-size:30px;line-height:1.1}
+.panel .big+.row2{margin-top:10px}
+.panel .row2+.row2{margin-top:10px}
